@@ -4,7 +4,9 @@ class mysql::config(
   $bind_address = '127.0.0.1',
   $port = 3306,
   # rather or not to store the rootpw in /etc/my.cnf
-  $etc_root_password = false
+  $etc_root_password = false,
+  # should service restarts be triggered or not.
+  $notify_restart = true
 ) {
 
   # manage root password if it is set
@@ -21,7 +23,10 @@ class mysql::config(
       path      => '/usr/local/sbin:/usr/bin',
       require   => [Package['mysql-server'], Service['mysqld']],
       before    => File['/root/.my.cnf'],
-      notify    => Exec['mysqld-restart'],
+      notify    => $notify_restart ? {
+        true => Exec['mysqld-restart'],
+        false => undef,
+      },
     }
     file{'/root/.my.cnf':
       content => template('mysql/my.cnf.pass.erb'),
@@ -37,7 +42,10 @@ class mysql::config(
     owner => 'root',
     group => 'root',
     mode  => '0400',
-    notify  => Exec['mysqld-restart'],
+    notify    => $notify_restart ? {
+      true => Exec['mysqld-restart'],
+      false => undef,
+    },
     require => Package['mysql-server']
   }
   file { '/etc/mysql':
